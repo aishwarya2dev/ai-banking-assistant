@@ -1,9 +1,6 @@
-from langchain_openai import ChatOpenAI
-from dotenv import load_dotenv
+from langchain_ollama import ChatOllama
 
-load_dotenv()
-
-llm = ChatOpenAI(
-    model="gpt-4.1-mini",
+llm = ChatOllama(
+    model="llama3.2",
     temperature=0
 )
