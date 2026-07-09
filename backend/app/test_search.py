@@ -1,7 +1,6 @@
 from utils.vector_store import load_vector_store
 
 db = load_vector_store()
-
 query = "minimum balance"
 
 results = db.similarity_search(query, k=3)

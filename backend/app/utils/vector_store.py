@@ -9,7 +9,6 @@ def create_vector_store(chunks):
     )
 
     vector_db.save_local("vectorstore/faiss_db")
-
     return vector_db
 
 
