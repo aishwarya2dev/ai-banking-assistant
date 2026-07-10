@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI ,HTTPException
 from pydantic import BaseModel
 from backend.app.ask import get_answer
 
@@ -17,7 +17,15 @@ def home():
 @app.post("/ask")
 def ask_question(request: QueryRequest):
 
-    answer = get_answer(request.question)
-    return {
-        "answer": answer
-    }
+    try:
+        answer = get_answer(request.question)
+
+        return {
+            "answer": answer
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )

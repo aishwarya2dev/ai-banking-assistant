@@ -2,10 +2,20 @@ from .utils.vector_store import load_vector_store
 from .utils.prompt import prompt
 from .utils.llm import llm
 
+# Load the vector database once when the application starts
+try:
+    vector_db = load_vector_store()
+except Exception:
+    vector_db = None
+
 
 def get_answer(question: str) -> str:
     
-    vector_db = load_vector_store()
+
+    if vector_db is None:
+        raise Exception(
+            "Vector database not found. Please ingest the documents first."
+        )
 
     docs = vector_db.similarity_search(
         question,
