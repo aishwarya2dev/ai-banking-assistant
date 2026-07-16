@@ -9,7 +9,14 @@ st.set_page_config(
 
 st.title("🏦 AI Banking Assistant")
 
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# ===========================
 # Sidebar
+# ===========================
+
 st.sidebar.header("Upload Banking PDF")
 
 uploaded_file = st.sidebar.file_uploader(
@@ -21,6 +28,7 @@ if uploaded_file:
     st.sidebar.success(f"{uploaded_file.name} selected successfully!")
 
     if st.sidebar.button("Upload PDF"):
+
         files = {
             "file": (
                 uploaded_file.name,
@@ -40,7 +48,8 @@ if uploaded_file:
         else:
             st.sidebar.error(f"❌ Upload failed: {response.text}")
 
-# New Chat Button
+
+# New Chat
 if st.sidebar.button("🆕 New Chat"):
 
     response = requests.post(
@@ -48,11 +57,39 @@ if st.sidebar.button("🆕 New Chat"):
     )
 
     if response.status_code == 200:
+
+        st.session_state.messages = []
+
         st.sidebar.success("✅ Started a new chat!")
+
+        st.rerun()
+
     else:
         st.sidebar.error("❌ Failed to clear chat history.")
 
-# Query Section
+# ===========================
+# Display Conversation
+# ===========================
+
+for message in st.session_state.messages:
+
+    with st.chat_message(message["role"]):
+
+        st.markdown(message["content"])
+
+        if (
+            message["role"] == "assistant"
+            and message.get("sources")
+        ):
+            st.markdown("**📖 Sources**")
+
+            for source in message["sources"]:
+                st.markdown(f"- {source}")
+
+# ===========================
+# Ask Question
+# ===========================
+
 st.subheader("Ask a Banking Question")
 
 question = st.text_input("Enter your question")
@@ -61,27 +98,50 @@ if st.button("Ask"):
 
     if not question:
         st.warning("Please enter a question.")
+
     else:
+
+        # Store user message
+        st.session_state.messages.append(
+            {
+                "role": "user",
+                "content": question
+            }
+        )
+
         with st.spinner("Generating answer..."):
+
             response = requests.post(
                 "http://127.0.0.1:8000/ask",
-                json={"question": question}
+                json={
+                    "question": question
+                }
             )
 
         if response.status_code == 200:
 
             result = response.json()
 
-            st.markdown("### 💬 Answer")
-            st.write(result["answer"])
+            answer = result["answer"]
 
-            sources = result.get("sources", [])
+            sources = result.get(
+                "sources",
+                []
+            )
 
-            if sources:
-                st.markdown("### 📖 Sources")
+            # Store assistant response
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": answer,
+                    "sources": sources
+                }
+            )
 
-                for source in sources:
-                    st.markdown(f"- {source}")
+            st.rerun()
 
         else:
-            st.error(f"Error: {response.text}")
+
+            st.error(
+                f"Error: {response.text}"
+            )
