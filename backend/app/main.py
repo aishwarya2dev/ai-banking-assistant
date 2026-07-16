@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from backend.app.ask import get_answer
 from backend.app.ingest import ingest_documents
 from backend.app.utils.vector_store import load_vector_store
-
+from backend.app.services.chat_memory import clear_history
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -90,3 +90,12 @@ def upload_pdf(file: UploadFile = File(...)):
             status_code=500,
             detail=str(e)
         )
+    
+@app.post("/clear-chat")
+def clear_chat():
+
+    clear_history()
+
+    return {
+        "message": "Conversation history cleared successfully."
+    }

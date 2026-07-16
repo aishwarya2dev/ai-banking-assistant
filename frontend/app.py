@@ -40,6 +40,18 @@ if uploaded_file:
         else:
             st.sidebar.error(f"❌ Upload failed: {response.text}")
 
+# New Chat Button
+if st.sidebar.button("🆕 New Chat"):
+
+    response = requests.post(
+        "http://127.0.0.1:8000/clear-chat"
+    )
+
+    if response.status_code == 200:
+        st.sidebar.success("✅ Started a new chat!")
+    else:
+        st.sidebar.error("❌ Failed to clear chat history.")
+
 # Query Section
 st.subheader("Ask a Banking Question")
 
@@ -59,13 +71,17 @@ if st.button("Ask"):
         if response.status_code == 200:
 
             result = response.json()
+
             st.markdown("### 💬 Answer")
             st.write(result["answer"])
+
             sources = result.get("sources", [])
 
             if sources:
                 st.markdown("### 📖 Sources")
+
                 for source in sources:
                     st.markdown(f"- {source}")
+
         else:
             st.error(f"Error: {response.text}")
