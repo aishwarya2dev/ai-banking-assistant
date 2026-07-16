@@ -61,9 +61,11 @@ if st.button("Ask"):
             result = response.json()
             st.markdown("### 💬 Answer")
             st.write(result["answer"])
-            st.markdown("### 📖 Sources")
+            sources = result.get("sources", [])
 
-            for source in result["sources"]:
-                st.markdown(f"- {source}")
+            if sources:
+                st.markdown("### 📖 Sources")
+                for source in sources:
+                    st.markdown(f"- {source}")
         else:
             st.error(f"Error: {response.text}")

@@ -1,8 +1,10 @@
+import json
+
 from .utils.prompt import prompt
 from .utils.llm import llm
 
 
-def get_answer(question: str, vector_db) -> str:
+def get_answer(question: str, vector_db):
 
     if vector_db is None:
         raise Exception(
@@ -14,20 +16,23 @@ def get_answer(question: str, vector_db) -> str:
         k=3
     )
 
-    sources = []
-    for doc in docs:
-        doc_name = doc.metadata.get("doc_name", "Unknown")
-        page = doc.metadata.get("page", "?")
+    context = ""
 
-        citation = f"{doc_name} (Page {page})"
+    for i, doc in enumerate(docs, start=1):
+        context += f"""
+========== Context {i} ==========
 
-        if citation not in sources:
-            sources.append(citation)
+Context ID: {i}
 
-    context = "\n\n".join(
-        doc.page_content
-        for doc in docs
-    )
+Document: {doc.metadata.get("doc_name", "Unknown")}
+Page: {doc.metadata.get("page", "?")}
+
+Content:
+{doc.page_content}
+
+================================
+
+"""
 
     messages = prompt.invoke({
         "context": context,
@@ -36,7 +41,38 @@ def get_answer(question: str, vector_db) -> str:
 
     response = llm.invoke(messages)
 
-    return {
-        "answer": response.content,
-        "sources": sources
-    }
+    try:
+        result = json.loads(response.content)
+
+        used_contexts = result.get("used_contexts", [])
+
+        sources = []
+
+        for context_id in used_contexts:
+
+            if isinstance(context_id, int) and 1 <= context_id <= len(docs):
+
+                doc = docs[context_id - 1]
+
+                citation = (
+                    f"{doc.metadata.get('doc_name', 'Unknown')} "
+                    f"(Page {doc.metadata.get('page', '?')})"
+                )
+
+                if citation not in sources:
+                    sources.append(citation)
+
+        return {
+            "answer": result.get(
+                "answer",
+                "I couldn't generate an answer."
+            ),
+            "sources": sources
+        }
+
+    except json.JSONDecodeError:
+
+        return {
+            "answer": response.content,
+            "sources": []
+        }
