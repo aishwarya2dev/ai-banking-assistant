@@ -58,9 +58,12 @@ if st.button("Ask"):
 
         if response.status_code == 200:
 
-            answer = response.json()["answer"]
+            result = response.json()
+            st.markdown("### 💬 Answer")
+            st.write(result["answer"])
+            st.markdown("### 📖 Sources")
 
-            st.success(answer)
-
+            for source in result["sources"]:
+                st.markdown(f"- {source}")
         else:
             st.error(f"Error: {response.text}")

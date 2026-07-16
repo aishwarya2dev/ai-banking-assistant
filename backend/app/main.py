@@ -51,14 +51,12 @@ def ask_question(request: QueryRequest):
 
     try:
 
-        answer = get_answer(
+        result  = get_answer(
             request.question,
             app.state.vector_db
         )
 
-        return {
-            "answer": answer
-        }
+        return result
 
     except Exception as e:
         raise HTTPException(
