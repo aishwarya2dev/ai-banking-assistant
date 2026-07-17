@@ -48,8 +48,10 @@ if uploaded_file:
         else:
             st.sidebar.error(f"❌ Upload failed: {response.text}")
 
-
+# ===========================
 # New Chat
+# ===========================
+
 if st.sidebar.button("🆕 New Chat"):
 
     response = requests.post(
@@ -66,6 +68,27 @@ if st.sidebar.button("🆕 New Chat"):
 
     else:
         st.sidebar.error("❌ Failed to clear chat history.")
+
+# ===========================
+# Welcome Screen
+# ===========================
+
+if len(st.session_state.messages) == 0:
+
+    st.markdown("## 👋 Welcome!")
+
+    st.markdown(
+        "Ask questions about your banking documents instantly."
+    )
+
+    st.markdown("### 💡 Try asking:")
+
+    st.markdown("""
+-  What is the minimum balance required?
+-  Explain the credit card annual fee.
+-  Summarize this document.
+-  What are the ATM withdrawal charges?
+""")
 
 # ===========================
 # Display Conversation
@@ -87,61 +110,56 @@ for message in st.session_state.messages:
                 st.markdown(f"- {source}")
 
 # ===========================
-# Ask Question
+# Chat Input
 # ===========================
 
-st.subheader("Ask a Banking Question")
+question = st.chat_input(
+    "Ask anything about your banking documents..."
+)
 
-question = st.text_input("Enter your question")
+if question:
 
-if st.button("Ask"):
+    # Store user message
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": question
+        }
+    )
 
-    if not question:
-        st.warning("Please enter a question.")
+    with st.spinner("Generating answer..."):
 
-    else:
-
-        # Store user message
-        st.session_state.messages.append(
-            {
-                "role": "user",
-                "content": question
+        response = requests.post(
+            "http://127.0.0.1:8000/ask",
+            json={
+                "question": question
             }
         )
 
-        with st.spinner("Generating answer..."):
+    if response.status_code == 200:
 
-            response = requests.post(
-                "http://127.0.0.1:8000/ask",
-                json={
-                    "question": question
-                }
-            )
+        result = response.json()
 
-        if response.status_code == 200:
+        answer = result["answer"]
 
-            result = response.json()
+        sources = result.get(
+            "sources",
+            []
+        )
 
-            answer = result["answer"]
+        # Store assistant response
+        st.session_state.messages.append(
+            {
+                "role": "assistant",
+                "content": answer,
+                "sources": sources
+            }
+        )
 
-            sources = result.get(
-                "sources",
-                []
-            )
+        st.rerun()
 
-            # Store assistant response
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": answer,
-                    "sources": sources
-                }
-            )
+    else:
 
-            st.rerun()
-
-        else:
-
-            st.error(
-                f"Error: {response.text}"
-            )
+        st.error(
+            f"Error: {response.text}"
+        )
