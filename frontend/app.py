@@ -9,7 +9,10 @@ st.set_page_config(
 
 st.title("🏦 AI Banking Assistant")
 
-# Initialize chat history
+# ===========================
+# Initialize Chat History
+# ===========================
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -25,6 +28,7 @@ uploaded_file = st.sidebar.file_uploader(
 )
 
 if uploaded_file:
+
     st.sidebar.success(f"{uploaded_file.name} selected successfully!")
 
     if st.sidebar.button("Upload PDF"):
@@ -38,6 +42,7 @@ if uploaded_file:
         }
 
         with st.spinner("Uploading and indexing PDF..."):
+
             response = requests.post(
                 "http://127.0.0.1:8000/upload",
                 files=files
@@ -46,7 +51,9 @@ if uploaded_file:
         if response.status_code == 200:
             st.sidebar.success("✅ PDF uploaded successfully!")
         else:
-            st.sidebar.error(f"❌ Upload failed: {response.text}")
+            st.sidebar.error(
+                f"❌ Upload failed: {response.text}"
+            )
 
 # ===========================
 # New Chat
@@ -67,28 +74,9 @@ if st.sidebar.button("🆕 New Chat"):
         st.rerun()
 
     else:
-        st.sidebar.error("❌ Failed to clear chat history.")
-
-# ===========================
-# Welcome Screen
-# ===========================
-
-if len(st.session_state.messages) == 0:
-
-    st.markdown("## 👋 Welcome!")
-
-    st.markdown(
-        "Ask questions about your banking documents instantly."
-    )
-
-    st.markdown("### 💡 Try asking:")
-
-    st.markdown("""
--  What is the minimum balance required?
--  Explain the credit card annual fee.
--  Summarize this document.
--  What are the ATM withdrawal charges?
-""")
+        st.sidebar.error(
+            "❌ Failed to clear chat history."
+        )
 
 # ===========================
 # Display Conversation
@@ -96,18 +84,27 @@ if len(st.session_state.messages) == 0:
 
 for message in st.session_state.messages:
 
-    with st.chat_message(message["role"]):
+    if message["role"] == "assistant":
 
-        st.markdown(message["content"])
-
-        if (
-            message["role"] == "assistant"
-            and message.get("sources")
+        with st.chat_message(
+            "assistant",
+            avatar="🏦"
         ):
-            st.markdown("**📖 Sources**")
 
-            for source in message["sources"]:
-                st.markdown(f"- {source}")
+            st.markdown(message["content"])
+
+            if message.get("sources"):
+
+                st.markdown("**📖 Sources**")
+
+                for source in message["sources"]:
+                    st.markdown(f"- {source}")
+
+    else:
+
+        with st.chat_message("user", avatar="👤"):
+
+            st.markdown(message["content"])
 
 # ===========================
 # Chat Input
@@ -127,39 +124,56 @@ if question:
         }
     )
 
-    with st.spinner("Generating answer..."):
+    # Show user message immediately
+    with st.chat_message("user", avatar="👤"):
+        st.markdown(question)
 
-        response = requests.post(
-            "http://127.0.0.1:8000/ask",
-            json={
-                "question": question
-            }
-        )
+    # Show assistant placeholder
+    with st.chat_message(
+        "assistant",
+        avatar="🏦"
+    ):
 
-    if response.status_code == 200:
+        with st.spinner("Thinking..."):
 
-        result = response.json()
+            response = requests.post(
+                "http://127.0.0.1:8000/ask",
+                json={
+                    "question": question
+                }
+            )
 
-        answer = result["answer"]
+        if response.status_code == 200:
 
-        sources = result.get(
-            "sources",
-            []
-        )
+            result = response.json()
 
-        # Store assistant response
-        st.session_state.messages.append(
-            {
-                "role": "assistant",
-                "content": answer,
-                "sources": sources
-            }
-        )
+            answer = result["answer"]
 
-        st.rerun()
+            sources = result.get(
+                "sources",
+                []
+            )
 
-    else:
+            st.markdown(answer)
 
-        st.error(
-            f"Error: {response.text}"
-        )
+            if sources:
+
+                st.markdown("**📖 Sources**")
+
+                for source in sources:
+                    st.markdown(f"- {source}")
+
+            # Save assistant response
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": answer,
+                    "sources": sources
+                }
+            )
+
+        else:
+
+            st.error(
+                f"Error: {response.text}"
+            )
